@@ -1,0 +1,197 @@
+Frequentist Inference Case Study - Part B
+Learning objectives
+Welcome to Part B of the Frequentist inference case study! The purpose of this case study is to help you apply the concepts associated with Frequentist inference in Python. In particular, you'll practice writing Python code to apply the following statistical concepts:
+
+the z-statistic
+the t-statistic
+the difference and relationship between the two
+the Central Limit Theorem, including its assumptions and consequences
+how to estimate the population mean and standard deviation from a sample
+the concept of a sampling distribution of a test statistic, particularly for the mean
+how to combine these concepts to calculate a confidence interval
+In the previous notebook, we used only data from a known normal distribution. You'll now tackle real data, rather than simulated data, and answer some relevant real-world business problems using the data.
+
+Hospital medical charges
+Imagine that a hospital has hired you as their data scientist. An administrator is working on the hospital's business operations plan and needs you to help them answer some business questions.
+
+In this assignment notebook, you're going to use frequentist statistical inference on a data sample to answer the questions:
+
+has the hospital's revenue stream fallen below a key threshold?
+are patients with insurance really charged different amounts than those without?
+Answering that last question with a frequentist approach makes some assumptions, and requires some knowledge, about the two groups.
+
+We are going to use some data on medical charges obtained from Kaggle.
+
+For the purposes of this exercise, assume the observations are the result of random sampling from our single hospital. Recall that in the previous assignment, we introduced the Central Limit Theorem (CLT), and its consequence that the distributions 
+of sample statistics approach a normal distribution as n increases. The amazing thing about this is that it applies to the sampling distributions of statistics that have been calculated from even highly non-normal distributions of data! 
+Recall, also, that hypothesis testing is very much based on making inferences about such sample statistics. You're going to rely heavily on the CLT to apply frequentist (parametric) tests to answer the questions in this notebook.
+
+[1]
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import t
+from numpy.random import seed
+medical = pd.read_csv('data/insurance2.csv')
+
+[2]
+medical.shape
+(1338, 8)
+
+[3]
+medical.head()
+
+Q1: Plot the histogram of charges and calculate the mean and standard deviation. Comment on the appropriateness of these statistics for the data.
+
+A:
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Load the data with the provided file path
+medical = pd.read_csv('data/insurance2.csv')
+
+# Plot the histogram of charges
+plt.hist(medical['charges'], bins=30, edgecolor='k')
+plt.xlabel('Charges')
+plt.ylabel('Frequency')
+plt.title('Distribution of Charges')
+plt.show()
+
+# Calculate the mean and standard deviation
+mean_charges = np.mean(medical['charges'])
+std_charges = np.std(medical['charges'], ddof=1)  # Using ddof=1 for sample std deviation
+
+# Print the results
+print("Mean of charges:", mean_charges)
+print("Standard deviation of charges:", std_charges)
+
+After plotting the histogram, you can observe the shape of the distribution of charges.
+If the distribution is approximately normal (bell-shaped and symmetric), the mean and standard deviation are appropriate summary statistics.
+The average value of the charges, which can provide an estimate of the central tendency. A measure of the dispersion or spread of the charges around the mean.
+The mean may not accurately represent the central tendency, and the standard deviation might not fully capture the variability, especially if there are outliers.
+
+
+Q2: The administrator is concerned that the actual average charge has fallen below 12,000, threatening the hospital's operational model. On the assumption that these data represent a random sample of charges, 
+how would you justify that these data allow you to answer that question? And what would be the most appropriate frequentist test, of the ones discussed so far, to apply?
+
+A: To address the administrator's concern about whether the actual average charge has fallen below $12,000, you can justify the use of this data based on a random sample of charges from the hospital as it allows us to generalize the results from 
+the sample to the entire population of charges. The CLT also assures us that the sampling distribution of the sample mean will approach a normal distribution as the sample size increases, even if the underlying distribution of charges is not perfectly normal.
+The most appropriate frequentist test to apply in this situation is a one-sample t-test, since it is used to determine whether the sample mean is significantly different from a known or hypothesized population mean. 
+In this case, the hypothesized population mean is $12,000.
+
+Q3: Given the nature of the administrator's concern, what is the appropriate confidence interval in this case? A one-sided or two-sided interval? (Refresh your understanding of this concept on p. 399 of the AoS). 
+Calculate the critical value and the relevant 95% confidence interval for the mean, and comment on whether the administrator should be concerned.
+
+A: Given the administrator's concern about whether the hospital's actual average charge has fallen below $12,000, the appropriate confidence interval to calculate is a one-sided confidence interval.
+
+from scipy.stats import t
+import numpy as np
+
+# Assuming the sample mean and standard deviation have already been calculated
+# Set the seed for reproducibility
+np.random.seed(47)
+
+# Sample size
+n = 50
+
+# Randomly sample the heights of 50 townsfolk
+sample = np.random.choice(medical['charges'], n)
+
+# Sample mean and standard deviation
+sample_mean = np.mean(sample)
+sample_std = np.std(sample, ddof=1)
+
+# Calculate the critical t-value for a one-sided 95% confidence interval
+t_critical = t.ppf(0.95, df=n-1)  # 95% confidence for one-sided test
+
+# Calculate the margin of error
+margin_of_error = t_critical * (sample_std / np.sqrt(n))
+
+# Calculate the one-sided 95% confidence interval (lower bound is -∞)
+confidence_interval_upper = sample_mean + margin_of_error
+
+# Print the results
+print("Sample mean:", sample_mean)
+print("Sample standard deviation (with Bessel's correction):", sample_std)
+print("Critical t-value for 95% confidence (one-sided):", t_critical)
+print("Margin of error:", margin_of_error)
+print("95% Confidence interval upper bound:", confidence_interval_upper)
+
+# Determine if the administrator should be concerned
+should_be_concerned = confidence_interval_upper < 12000
+print("Should the administrator be concerned? (Is the upper bound < 12000?):", should_be_concerned)
+
+The administrator then wants to know whether people with insurance really are charged a different amount to those without.
+
+Q4: State the null and alternative hypothesis here. Use the t-test for the difference between means. (If you need some reminding of the general definition of t-statistic, check out the definition on p. 404 of AoS).
+
+What assumption about the variances of the two groups are we making here?
+
+A: The null hypothesis states that there is no difference in the mean charges between people with insurance and those without. This implies that any observed difference in sample means is due to random variation, not a true difference in population means.
+One common assumption is that the variances of the two groups are equal and, if they are assumed equal, we use the pooled t-test. If they are assumed unequal, we would use Welch's t-test.
+
+Q5: Perform this hypothesis test both manually, using the above formulae, and then using the appropriate function from scipy.stats (hint, you're looking for a function to perform a t-test on two independent samples). 
+For the manual approach, calculate the value of the test statistic and then its probability (the p-value). Verify you get the same results from both.
+
+A:
+import numpy as np
+from scipy.stats import ttest_ind
+
+# Separate the data into insured and uninsured groups using the correct column name
+insured_charges = medical[medical['insuranceclaim'] == 1]['charges']
+uninsured_charges = medical[medical['insuranceclaim'] == 0]['charges']
+
+# Calculate the sample sizes
+n1 = len(insured_charges)
+n2 = len(uninsured_charges)
+
+# Calculate the means
+mean1 = np.mean(insured_charges)
+mean2 = np.mean(uninsured_charges)
+
+# Calculate the standard deviations
+std1 = np.std(insured_charges, ddof=1)
+std2 = np.std(uninsured_charges, ddof=1)
+
+# Calculate the pooled standard deviation
+sp = np.sqrt(((n1 - 1) * std1**2 + (n2 - 1) * std2**2) / (n1 + n2 - 2))
+
+# Calculate the t-statistic
+t_statistic = (mean1 - mean2) / (sp * np.sqrt(1/n1 + 1/n2))
+
+# Calculate the degrees of freedom
+df = n1 + n2 - 2
+
+# Calculate the p-value (two-tailed)
+p_value_manual = 2 * (1 - t.cdf(np.abs(t_statistic), df=df))
+
+# Perform the t-test using scipy
+t_statistic_scipy, p_value_scipy = ttest_ind(insured_charges, uninsured_charges, equal_var=True)
+
+# Print the results
+print("Manual t-statistic:", t_statistic)
+print("Manual p-value:", p_value_manual)
+print("Scipy t-statistic:", t_statistic_scipy)
+print("Scipy p-value:", p_value_scipy)
+
+Manual t-statistic: 11.893299030876715
+Manual p-value: 0.0
+Scipy t-statistic: 11.893299030876712
+Scipy p-value: 4.461230231620717e-31
+
+Congratulations! Hopefully you got the exact same numerical results. This shows that you correctly calculated the numbers by hand. Secondly, you used the correct function and saw that it's much easier to use. All you need to do is pass your data to it.
+
+Q6: Conceptual question: look through the documentation for statistical test functions in scipy.stats. You'll see the above t-test for a sample, but can you see an equivalent one for performing a z-test from a sample? Comment on your answer.
+
+A: Searching through the documentation for an equivalent function specifically for performing a z-test, I noticed that there is no direct function for a z-test like there is for a t-test.The z-test function in scipy.stats 
+are only used in rare real-world data analysis and are realtively straightforward.
+
+
+Learning outcomes
+Having completed this project notebook, you now have good hands-on experience:
+
+using the central limit theorem to help you apply frequentist techniques to answer questions that pertain to very non-normally distributed data from the real world
+performing inference using such data to answer business questions
+forming a hypothesis and framing the null and alternative hypotheses
+testing this using a t-test
